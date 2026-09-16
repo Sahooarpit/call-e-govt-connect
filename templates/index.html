@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call-E Govt Connect | Municipal Incident Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        },
+                        govslate: {
+                            800: '#1e293b',
+                            850: '#172033',
+                            900: '#0f172a',
+                            950: '#0b0f19',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Lucide Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .pulse-emergency {
+            animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .85; transform: scale(1.02); }
+        }
+    </style>
+</head>
+<body class="bg-govslate-950 text-slate-100 min-h-screen custom-scrollbar antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-govslate-900/90 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="selectCity('')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
+                        <i class="fa-solid fa-headset text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">
+                                Call-E Govt Connect
+                            </span>
+                            <span class="px-2 py-0.5 text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">
+                                AI Dispatch
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 hidden sm:block">Citizen Voice Intelligence & Incident Management</p>
+                    </div>
+                </div>
+
+                <!-- City Selector & Dynamic Navigation -->
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <label for="citySelector" class="sr-only">Select City</label>
+                        <div class="relative flex items-center">
+                            <i class="fa-solid fa-city absolute left-3 text-slate-400 text-xs pointer-events-none"></i>
+                            <select id="citySelector" onchange="onCityDropdownChange(this.value)" class="bg-slate-800 text-slate-100 text-xs sm:text-sm rounded-lg pl-8 pr-8 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-medium cursor-pointer shadow-inner">
+                                <option value="">🌐 All Municipalities</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <button onclick="openSimulateModal()" class="hidden md:inline-flex items-center space-x-1.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-md shadow-indigo-600/20 border border-indigo-400/30 transition-all duration-150 active:scale-95">
+                        <i class="fa-solid fa-phone-volume text-xs"></i>
+                        <span>Simulate Call</span>
+                    </button>
+
+                    <button onclick="seedSampleData()" title="Seed Demo Data" class="inline-flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                        <span class="hidden sm:inline">Seed Data</span>
+                    </button>
+
+                    <button onclick="loadDashboardData()" title="Refresh Feed" class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition">
+                        <i id="refreshIcon" class="fa-solid fa-rotate-right text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- SCOPE BANNER -->
+        <div id="cityBanner" class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/70 to-slate-900 p-5 border border-indigo-500/20 shadow-xl">
+            <div class="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span id="currentScopeBadge" class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            Global Overview
+                        </span>
+                        <span class="inline-flex items-center space-x-1 text-xs text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Live Intake Active</span>
+                        </span>
+                    </div>
+                    <h1 id="currentScopeTitle" class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                        <span>All Municipalities Dispatch Center</span>
+                    </h1>
+                    <p id="currentScopeSubtitle" class="text-xs sm:text-sm text-slate-300">
+                        Aggregating structured voice reports, transcript summaries, and dispatch priorities across all serviced cities.
+                    </p>
+                </div>
+                
+                <!-- Dynamic City Endpoint Link pill -->
+                <div id="endpointPillContainer" class="flex flex-wrap items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-300 flex items-center gap-2">
+                        <span class="text-slate-500 font-mono">API:</span>
+                        <code id="activeEndpointUrl" class="text-indigo-300 font-mono font-medium text-[11px]">/api/incidents</code>
+                        <a id="activeEndpointLink" href="/api/incidents" target="_blank" title="Open API Endpoint JSON" class="text-slate-400 hover:text-white transition">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI METRICS OVERVIEW CARDS -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Total Calls -->
+            <div class="glass-panel rounded-xl p-4 shadow-sm relative overflow-hidden group hover:border-slate-700 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Total Call Reports</span>
+                    <span class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 text-xs"><i class="fa-solid fa-phone"></i></span>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span id="kpiTotalCalls" class="text-2xl sm:text-3xl font-extrabold text-white">0</span>
+                    <span class="text-xs text-slate-400">citizen calls</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-robot text-indigo-400"></i>
+                    <span>Processed via Call-E Voice AI</span>
+                </div>
+            </div>
+
+            <!-- Emergency / High Severity -->
+            <div class="glass-panel rounded-xl p-4 shadow-sm relative overflow-hidden group hover:border-red-500/40 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-red-300">Urgent / Emergency</span>
+                    <span class="p-2 rounded-lg bg-red-500/10 text-red-400 text-xs"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span id="kpiEmergency" class="text-2xl sm:text-3xl font-extrabold text-red-400">0</span>
+                    <span class="text-xs text-red-400/80">high priority</span>
+                </div>
+                <div class="mt-2 text-[11px] text-red-400/80 flex items-center gap-1">
+                    <i class="fa-solid fa-bell animate-bounce text-xs"></i>
+                    <span>Requires rapid dispatch</span>
+                </div>
+            </div>
+
+            <!-- In Progress Tickets -->
+            <div class="glass-panel rounded-xl p-4 shadow-sm relative overflow-hidden group hover:border-amber-500/40 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-amber-300">In Progress</span>
+                    <span class="p-2 rounded-lg bg-amber-500/10 text-amber-400 text-xs"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span id="kpiInProgress" class="text-2xl sm:text-3xl font-extrabold text-amber-300">0</span>
+                    <span class="text-xs text-amber-400/80">dispatched</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-truck-pickup text-amber-400"></i>
+                    <span>Crews currently assigned</span>
+                </div>
+            </div>
+
+            <!-- Resolved Rate -->
+            <div class="glass-panel rounded-xl p-4 shadow-sm relative overflow-hidden group hover:border-emerald-500/40 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-emerald-300">Resolved Tickets</span>
+                    <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs"><i class="fa-solid fa-circle-check"></i></span>
+                </div>
+                <div class="mt-2 flex items-baseline space-x-2">
+                    <span id="kpiResolved" class="text-2xl sm:text-3xl font-extrabold text-emerald-400">0</span>
+                    <span id="kpiResolvedRate" class="text-xs font-medium text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/30">0%</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-clipboard-check text-emerald-400"></i>
+                    <span>Successfully closed</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- DYNAMIC CITY QUICK SELECTOR TABS -->
+        <div id="cityChipsContainer" class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            <!-- Dynamically populated chips -->
+        </div>
+
+        <!-- ANALYTICS CHARTS & SUMMARY SPOTLIGHT -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Category Distribution Chart -->
+            <div class="glass-panel rounded-xl p-5 border border-slate-800">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-400"></i>
+                        <span>Issues by Category</span>
+                    </h2>
+                    <span class="text-xs text-slate-400" id="categoriesCountBadge">Top Reports</span>
+                </div>
+                <div class="relative h-56 flex items-center justify-center">
+                    <canvas id="categoryChart"></canvas>
+                    <div id="categoryEmptyState" class="hidden text-center text-xs text-slate-500">
+                        No incident data available
+                    </div>
+                </div>
+            </div>
+
+            <!-- Severity Distribution Chart -->
+            <div class="glass-panel rounded-xl p-5 border border-slate-800">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-gauge-high text-amber-400"></i>
+                        <span>Severity Breakdown</span>
+                    </h2>
+                    <span class="text-xs text-slate-400">Urgency Distribution</span>
+                </div>
+                <div class="relative h-56 flex items-center justify-center">
+                    <canvas id="severityChart"></canvas>
+                    <div id="severityEmptyState" class="hidden text-center text-xs text-slate-500">
+                        No incident data available
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Citizen Intelligence Summary Card -->
+            <div class="glass-panel rounded-xl p-5 border border-slate-800 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-purple-400"></i>
+                            <span>AI Caller Insights</span>
+                        </h2>
+                        <span id="aiInsightTag" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            Summarized Notes
+                        </span>
+                    </div>
+                    <div id="aiSummaryBox" class="space-y-3 text-xs text-slate-300 custom-scrollbar max-h-48 overflow-y-auto pr-1">
+                        <p class="italic text-slate-400">Analyzing recent call transcript summaries from citizens...</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                    <span>Active Municipal Scope:</span>
+                    <span id="aiScopeLabel" class="font-semibold text-indigo-300">All Cities</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- INCIDENT REPORTS & CALL TRANSCRIPTS FEED -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
+            
+            <!-- Feed Controls: Search & Filters -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-comments text-indigo-400"></i>
+                        <span>Citizen Voice Reports & Summaries</span>
+                    </h2>
+                    <span id="feedCountBadge" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full border border-slate-700 font-medium">0 items</span>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="flex flex-wrap items-center gap-2">
+                    
+                    <!-- Search Input -->
+                    <div class="relative min-w-[200px]">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input id="searchInput" oninput="applyFilters()" type="text" placeholder="Search transcripts, streets, issues..." class="w-full bg-slate-800/90 text-slate-200 text-xs rounded-lg pl-8 pr-3 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500">
+                    </div>
+
+                    <!-- Severity Filter -->
+                    <select id="severityFilter" onchange="applyFilters()" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">All Severities</option>
+                        <option value="Emergency">🚨 Emergency</option>
+                        <option value="High">⚠️ High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low / Normal</option>
+                    </select>
+
+                    <!-- Status Filter -->
+                    <select id="statusFilter" onchange="applyFilters()" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">All Statuses</option>
+                        <option value="Open">🔵 Open</option>
+                        <option value="In Progress">🟡 In Progress</option>
+                        <option value="Resolved">🟢 Resolved</option>
+                    </select>
+
+                    <!-- View Switcher -->
+                    <div class="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                        <button id="viewGridBtn" onclick="setViewMode('grid')" title="Card View" class="px-2.5 py-1 text-xs rounded-md bg-indigo-600 text-white font-medium">
+                            <i class="fa-solid fa-table-cells-large"></i>
+                        </button>
+                        <button id="viewTableBtn" onclick="setViewMode('table')" title="Table View" class="px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-white font-medium">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Incident Cards Grid View -->
+            <div id="incidentsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamically populated cards -->
+            </div>
+
+            <!-- Incident Table View (Hidden by default) -->
+            <div id="incidentsTableContainer" class="hidden overflow-x-auto rounded-xl border border-slate-800">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-800/80 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <tr>
+                            <th class="px-4 py-3">ID</th>
+                            <th class="px-4 py-3">City</th>
+                            <th class="px-4 py-3">Issue & Location</th>
+                            <th class="px-4 py-3">Citizen Voice Summary</th>
+                            <th class="px-4 py-3">Severity</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Reported</th>
+                            <th class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidentsTableBody" class="divide-y divide-slate-800">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12 space-y-3">
+                <div class="w-16 h-16 rounded-full bg-slate-800 mx-auto flex items-center justify-center text-slate-500 text-2xl">
+                    <i class="fa-solid fa-inbox"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-200">No incident reports found</h3>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto">There are no calls matching your current filter criteria or city scope.</p>
+                <div class="pt-2 flex justify-center gap-2">
+                    <button onclick="seedSampleData()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">
+                        Seed Demo Call Reports
+                    </button>
+                    <button onclick="openSimulateModal()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">
+                        Simulate Inbound Call
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- SIMULATE INBOUND CALL MODAL -->
+    <div id="simulateModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-scale-up">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <div class="p-2 rounded-lg bg-indigo-600/20 text-indigo-400">
+                        <i class="fa-solid fa-phone-volume"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Simulate Call-E Inbound Report</h3>
+                        <p class="text-xs text-slate-400">Emulate the structured webhook from Call-E voice agent</p>
+                    </div>
+                </div>
+                <button onclick="closeSimulateModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+
+            <!-- Quick Template Presets -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Quick Presets:</label>
+                <div class="flex flex-wrap gap-1.5">
+                    <button onclick="fillPreset('Springfield', '742 Evergreen Terrace', 'Pothole', 'high', 'Citizen reported a deep 2-foot pothole in the right lane near the driveway. Multiple vehicles suffered tire punctures.')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] rounded border border-slate-700">
+                        Springfield Pothole
+                    </button>
+                    <button onclick="fillPreset('Metropolis', '100 Lex Street', 'Water Main Break', 'emergency', 'Caller stated pressurized water is gushing across Lex Street, flooding the sidewalk and basement access.')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] rounded border border-slate-700">
+                        Metropolis Water Main
+                    </button>
+                    <button onclick="fillPreset('Gotham', '224 Crime Alley', 'Streetlight', 'medium', 'Citizen called to report that three consecutive streetlights are completely dark, creating hazardous night driving.')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] rounded border border-slate-700">
+                        Gotham Dark Street
+                    </button>
+                </div>
+            </div>
+
+            <form id="simulateForm" onsubmit="submitSimulatedCall(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">City Municipality *</label>
+                        <input id="simCity" required type="text" placeholder="e.g. Springfield" class="w-full bg-slate-800 text-slate-100 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Issue Category *</label>
+                        <input id="simIssue" required type="text" placeholder="e.g. Pothole, Water Leak" class="w-full bg-slate-800 text-slate-100 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Location / Street *</label>
+                        <input id="simLocation" required type="text" placeholder="e.g. 742 Evergreen Terrace" class="w-full bg-slate-800 text-slate-100 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Severity *</label>
+                        <select id="simSeverity" class="w-full bg-slate-800 text-slate-100 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="emergency">🚨 Emergency (Immediate Danger)</option>
+                            <option value="high">⚠️ High (Hazardous / Urgent)</option>
+                            <option value="medium" selected>Medium (Standard Maintenance)</option>
+                            <option value="low">Low (Minor Non-urgent)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Citizen Call Summary / Voice Transcript Notes *</label>
+                    <textarea id="simSummary" rows="3" required placeholder="Citizen stated..." class="w-full bg-slate-800 text-slate-100 text-xs rounded-lg px-3 py-2 border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none custom-scrollbar"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeSimulateModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium">Cancel</button>
+                    <button type="submit" id="simSubmitBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow-lg shadow-indigo-600/30">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Transmit to Webhook</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DETAIL TICKET MODAL -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-scale-up">
+            <div class="flex items-start justify-between pb-3 border-b border-slate-800">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span id="detailTicketId" class="text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30">#1</span>
+                        <span id="detailCityBadge" class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">Springfield</span>
+                        <span id="detailSeverityBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">High</span>
+                    </div>
+                    <h3 id="detailIssueTitle" class="text-lg font-bold text-white">Pothole Report</h3>
+                </div>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Location & Meta Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-800/50 p-4 rounded-xl border border-slate-800 text-xs">
+                <div>
+                    <span class="text-slate-400 block font-medium">Location:</span>
+                    <p id="detailLocation" class="text-slate-100 font-semibold mt-0.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-indigo-400"></i>
+                        <span>742 Evergreen Terrace</span>
+                    </p>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-medium">Received Time:</span>
+                    <p id="detailTime" class="text-slate-200 mt-0.5">2026-09-16 19:45</p>
+                </div>
+            </div>
+
+            <!-- Citizen Voice Transcript Summary -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-quote-left text-indigo-400"></i>
+                    <span>Summarized Citizen Statement</span>
+                </label>
+                <div id="detailSummaryText" class="p-4 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 text-sm leading-relaxed italic">
+                    "Caller reported a large pothole..."
+                </div>
+            </div>
+
+            <!-- Action: Update Status -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <label class="text-xs font-medium text-slate-400">Update Ticket Status:</label>
+                    <select id="detailStatusSelect" onchange="updateTicketStatusFromModal(this.value)" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-3 py-1.5 border border-slate-700 focus:ring-2 focus:ring-indigo-500">
+                        <option value="Open">🔵 Open</option>
+                        <option value="In Progress">🟡 In Progress</option>
+                        <option value="Resolved">🟢 Resolved</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <a id="detailMapsLink" href="#" target="_blank" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-map-location-dot text-emerald-400"></i>
+                        <span>View on Maps</span>
+                    </a>
+                    <button onclick="closeDetailModal()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // State Management
+        let allIncidents = [];
+        let filteredIncidents = [];
+        let allCities = [];
+        let currentCityScope = ''; // Empty string = All Municipalities
+        let currentViewMode = 'grid'; // 'grid' | 'table'
+        let activeIncidentDetail = null;
+
+        // Chart instances
+        let categoryChartInstance = null;
+        let severityChartInstance = null;
+
+        // Color maps
+        const severityColors = {
+            'emergency': { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40', badge: 'bg-red-600 text-white' },
+            'high': { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/40', badge: 'bg-orange-600 text-white' },
+            'medium': { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', badge: 'bg-amber-600 text-white' },
+            'low': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', badge: 'bg-emerald-600 text-white' },
+            'normal': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40', badge: 'bg-blue-600 text-white' },
+        };
+
+        const statusColors = {
+            'open': { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', icon: 'fa-circle-dot' },
+            'in progress': { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30', icon: 'fa-clock-rotate-left' },
+            'resolved': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30', icon: 'fa-circle-check' },
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if URL has city in path, e.g. /city/Springfield
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            if (pathParts.length >= 2 && pathParts[0] === 'city') {
+                currentCityScope = decodeURIComponent(pathParts[1]);
+            }
+
+            loadCities();
+            loadDashboardData();
+
+            // Auto-refresh interval every 12 seconds
+            setInterval(() => {
+                loadDashboardData(true);
+            }, 12000);
+        });
+
+        // Load all registered cities
+        async function loadCities() {
+            try {
+                const res = await fetch('/api/cities');
+                if (!res.ok) throw new Error('Failed to fetch cities');
+                const data = await res.json();
+                allCities = data;
+
+                // Populate Dropdown
+                const selector = document.getElementById('citySelector');
+                selector.innerHTML = '<option value="">🌐 All Municipalities</option>';
+                
+                // Populate Chips
+                const chipsContainer = document.getElementById('cityChipsContainer');
+                chipsContainer.innerHTML = `
+                    <button onclick="selectCity('')" class="city-chip px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${currentCityScope === '' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'}">
+                        🌐 All Cities
+                    </button>
+                `;
+
+                data.forEach(item => {
+                    const cityName = typeof item === 'string' ? item : item.city;
+                    const count = typeof item === 'object' ? item.total_incidents : null;
+                    const option = document.createElement('option');
+                    option.value = cityName;
+                    option.textContent = cityName + (count !== null ? ` (${count})` : '');
+                    if (currentCityScope.toLowerCase() === cityName.toLowerCase()) {
+                        option.selected = true;
+                    }
+                    selector.appendChild(option);
+
+                    // Add Chip
+                    const isSelected = currentCityScope.toLowerCase() === cityName.toLowerCase();
+                    const chipBtn = document.createElement('button');
+                    chipBtn.onclick = () => selectCity(cityName);
+                    chipBtn.className = `city-chip px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'}`;
+                    chipBtn.innerHTML = `
+                        <span>🏛️ ${cityName}</span>
+                        ${count !== null ? `<span class="px-1.5 py-0.2 text-[10px] rounded-full bg-slate-900/60 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}">${count}</span>` : ''}
+                    `;
+                    chipsContainer.appendChild(chipBtn);
+                });
+
+            } catch (err) {
+                console.error('Error loading cities:', err);
+            }
+        }
+
+        // Load data based on current scope
+        async function loadDashboardData(isBackground = false) {
+            const refreshIcon = document.getElementById('refreshIcon');
+            if (!isBackground) refreshIcon.classList.add('fa-spin');
+
+            try {
+                let endpoint = '/api/incidents';
+                if (currentCityScope) {
+                    endpoint = `/api/cities/${encodeURIComponent(currentCityScope)}/incidents`;
+                }
+
+                const res = await fetch(endpoint);
+                if (!res.ok) throw new Error('Failed to fetch incidents');
+                allIncidents = await res.json();
+
+                updateScopeUI();
+                applyFilters();
+                updateKPIs();
+                updateCharts();
+                updateAISummaries();
+
+            } catch (err) {
+                console.error('Error fetching dashboard data:', err);
+                showToast('Failed to sync incident feed', 'error');
+            } finally {
+                if (!isBackground) {
+                    setTimeout(() => refreshIcon.classList.remove('fa-spin'), 400);
+                }
+            }
+        }
+
+        // Update Scope UI (Title, subtitle, endpoints)
+        function updateScopeUI() {
+            const titleEl = document.getElementById('currentScopeTitle');
+            const subtitleEl = document.getElementById('currentScopeSubtitle');
+            const badgeEl = document.getElementById('currentScopeBadge');
+            const endpointUrlEl = document.getElementById('activeEndpointUrl');
+            const endpointLinkEl = document.getElementById('activeEndpointLink');
+            const aiScopeLabel = document.getElementById('aiScopeLabel');
+
+            if (currentCityScope) {
+                badgeEl.textContent = `City Dispatch Scope`;
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30';
+                titleEl.innerHTML = `<span>🌆 ${currentCityScope} Municipal Operations</span>`;
+                subtitleEl.textContent = `Dedicated live dynamic stream for citizen incident reports in ${currentCityScope}.`;
+                
+                const apiPath = `/api/cities/${encodeURIComponent(currentCityScope)}`;
+                endpointUrlEl.textContent = apiPath;
+                endpointLinkEl.href = apiPath;
+                aiScopeLabel.textContent = currentCityScope;
+            } else {
+                badgeEl.textContent = `Global Overview`;
+                badgeEl.className = 'px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
+                titleEl.innerHTML = `<span>🌐 All Municipalities Dispatch Center</span>`;
+                subtitleEl.textContent = `Aggregating structured voice reports, transcript summaries, and dispatch priorities across all serviced cities.`;
+                
+                endpointUrlEl.textContent = '/api/incidents';
+                endpointLinkEl.href = '/api/incidents';
+                aiScopeLabel.textContent = 'All Cities';
+            }
+        }
+
+        // City Switcher handler
+        function selectCity(city) {
+            currentCityScope = city;
+            
+            // Update browser URL without reloading
+            if (city) {
+                window.history.pushState({}, '', `/city/${encodeURIComponent(city)}`);
+            } else {
+                window.history.pushState({}, '', `/`);
+            }
+
+            const selector = document.getElementById('citySelector');
+            selector.value = city;
+
+            loadCities();
+            loadDashboardData();
+        }
+
+        function onCityDropdownChange(city) {
+            selectCity(city);
+        }
+
+        // Filter and Search Logic
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+            const severityFilter = document.getElementById('severityFilter').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+
+            filteredIncidents = allIncidents.filter(item => {
+                const matchSearch = !search || 
+                    (item.city && item.city.toLowerCase().includes(search)) ||
+                    (item.location && item.location.toLowerCase().includes(search)) ||
+                    (item.issue_type && item.issue_type.toLowerCase().includes(search)) ||
+                    (item.call_summary && item.call_summary.toLowerCase().includes(search));
+
+                const matchSeverity = !severityFilter || (item.severity && item.severity.toLowerCase() === severityFilter);
+                const matchStatus = !statusFilter || (item.status && item.status.toLowerCase() === statusFilter);
+
+                return matchSearch && matchSeverity && matchStatus;
+            });
+
+            renderIncidents();
+        }
+
+        // Render Incidents List (Grid & Table)
+        function renderIncidents() {
+            const grid = document.getElementById('incidentsGrid');
+            const tableBody = document.getElementById('incidentsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const feedCountBadge = document.getElementById('feedCountBadge');
+
+            feedCountBadge.textContent = `${filteredIncidents.length} of ${allIncidents.length} reports`;
+
+            if (filteredIncidents.length === 0) {
+                grid.innerHTML = '';
+                tableBody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // Render Cards Grid
+            grid.innerHTML = filteredIncidents.map(inc => {
+                const sevKey = (inc.severity || 'normal').toLowerCase();
+                const sevStyle = severityColors[sevKey] || severityColors['normal'];
+                const statKey = (inc.status || 'open').toLowerCase();
+                const statStyle = statusColors[statKey] || statusColors['open'];
+                const formattedTime = formatTimestamp(inc.created_at);
+                const isUrgent = sevKey === 'emergency' || sevKey === 'high';
+
+                return `
+                    <div class="glass-panel rounded-xl p-4 border transition-all duration-200 hover:border-slate-600 hover:shadow-lg flex flex-col justify-between space-y-3 ${isUrgent && statKey === 'open' ? 'border-red-500/30' : 'border-slate-800'}">
+                        <div class="space-y-2">
+                            <!-- Card Header -->
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center space-x-1.5 flex-wrap">
+                                    <span class="px-2 py-0.5 text-[11px] font-bold rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                        🏛️ ${escapeHtml(inc.city)}
+                                    </span>
+                                    <span class="px-2 py-0.5 text-[11px] font-bold rounded ${sevStyle.bg} ${sevStyle.text} border ${sevStyle.border}">
+                                        ${escapeHtml(inc.severity)}
+                                    </span>
+                                </div>
+                                <span class="text-[11px] text-slate-400 whitespace-nowrap">${formattedTime}</span>
+                            </div>
+
+                            <!-- Issue Type & Location -->
+                            <div>
+                                <h3 class="font-bold text-sm text-white flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xs"></i>
+                                    <span>${escapeHtml(inc.issue_type)}</span>
+                                </h3>
+                                <p class="text-xs text-slate-300 flex items-center gap-1 mt-0.5 truncate">
+                                    <i class="fa-solid fa-location-dot text-indigo-400 text-xs"></i>
+                                    <span>${escapeHtml(inc.location)}</span>
+                                </p>
+                            </div>
+
+                            <!-- Citizen Call Summary Highlight -->
+                            <div class="p-3 rounded-lg bg-slate-900/80 border border-slate-800/90 text-xs space-y-1">
+                                <div class="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                                    <span class="flex items-center gap-1"><i class="fa-solid fa-volume-high text-indigo-400"></i> Citizen Call Summary</span>
+                                    <span class="text-slate-500">AI Parsed</span>
+                                </div>
+                                <p class="text-slate-200 italic line-clamp-3 text-[12px] leading-relaxed">
+                                    "${escapeHtml(inc.call_summary || 'No call transcript available.')}"
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer: Status & Actions -->
+                        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                            <!-- Status Dropdown -->
+                            <select onchange="updateIncidentStatus(${inc.id}, this.value)" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 border border-slate-700 focus:ring-2 focus:ring-indigo-500 font-medium">
+                                <option value="Open" ${statKey === 'open' ? 'selected' : ''}>🔵 Open</option>
+                                <option value="In Progress" ${statKey === 'in progress' ? 'selected' : ''}>🟡 In Progress</option>
+                                <option value="Resolved" ${statKey === 'resolved' ? 'selected' : ''}>🟢 Resolved</option>
+                            </select>
+
+                            <button onclick="openDetailModal(${inc.id})" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
+                                <i class="fa-solid fa-eye text-xs"></i>
+                                <span>Details</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Table Rows
+            tableBody.innerHTML = filteredIncidents.map(inc => {
+                const sevKey = (inc.severity || 'normal').toLowerCase();
+                const sevStyle = severityColors[sevKey] || severityColors['normal'];
+                const statKey = (inc.status || 'open').toLowerCase();
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="px-4 py-3 font-mono text-slate-400">#${inc.id}</td>
+                        <td class="px-4 py-3 font-semibold text-white">🏛️ ${escapeHtml(inc.city)}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-white">${escapeHtml(inc.issue_type)}</div>
+                            <div class="text-[11px] text-slate-400">${escapeHtml(inc.location)}</div>
+                        </td>
+                        <td class="px-4 py-3 max-w-xs">
+                            <p class="text-xs text-slate-300 italic truncate" title="${escapeHtml(inc.call_summary || '')}">
+                                "${escapeHtml(inc.call_summary || 'No transcript')}"
+                            </p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-[11px] font-bold rounded ${sevStyle.bg} ${sevStyle.text} border ${sevStyle.border}">
+                                ${escapeHtml(inc.severity)}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <select onchange="updateIncidentStatus(${inc.id}, this.value)" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1 border border-slate-700">
+                                <option value="Open" ${statKey === 'open' ? 'selected' : ''}>🔵 Open</option>
+                                <option value="In Progress" ${statKey === 'in progress' ? 'selected' : ''}>🟡 In Progress</option>
+                                <option value="Resolved" ${statKey === 'resolved' ? 'selected' : ''}>🟢 Resolved</option>
+                            </select>
+                        </td>
+                        <td class="px-4 py-3 text-slate-400 text-[11px] whitespace-nowrap">
+                            ${formatTimestamp(inc.created_at)}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="openDetailModal(${inc.id})" class="text-indigo-400 hover:text-indigo-300 font-medium">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // View Mode Switcher (Grid vs Table)
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const grid = document.getElementById('incidentsGrid');
+            const table = document.getElementById('incidentsTableContainer');
+            const gridBtn = document.getElementById('viewGridBtn');
+            const tableBtn = document.getElementById('viewTableBtn');
+
+            if (mode === 'grid') {
+                grid.classList.remove('hidden');
+                table.classList.add('hidden');
+                gridBtn.className = 'px-2.5 py-1 text-xs rounded-md bg-indigo-600 text-white font-medium';
+                tableBtn.className = 'px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-white font-medium';
+            } else {
+                grid.classList.add('hidden');
+                table.classList.remove('hidden');
+                gridBtn.className = 'px-2.5 py-1 text-xs rounded-md text-slate-400 hover:text-white font-medium';
+                tableBtn.className = 'px-2.5 py-1 text-xs rounded-md bg-indigo-600 text-white font-medium';
+            }
+        }
+
+        // Update KPIs
+        function updateKPIs() {
+            const total = allIncidents.length;
+            const emergencyCount = allIncidents.filter(i => (i.severity || '').toLowerCase() === 'emergency' || (i.severity || '').toLowerCase() === 'high').length;
+            const inProgressCount = allIncidents.filter(i => (i.status || '').toLowerCase() === 'in progress').length;
+            const resolvedCount = allIncidents.filter(i => (i.status || '').toLowerCase() === 'resolved').length;
+            const rate = total > 0 ? Math.round((resolvedCount / total) * 100) : 0;
+
+            document.getElementById('kpiTotalCalls').textContent = total;
+            document.getElementById('kpiEmergency').textContent = emergencyCount;
+            document.getElementById('kpiInProgress').textContent = inProgressCount;
+            document.getElementById('kpiResolved').textContent = resolvedCount;
+            document.getElementById('kpiResolvedRate').textContent = `${rate}%`;
+        }
+
+        // Update Charts
+        function updateCharts() {
+            // Category breakdown
+            const catCounts = {};
+            allIncidents.forEach(i => {
+                const type = i.issue_type || 'General';
+                catCounts[type] = (catCounts[type] || 0) + 1;
+            });
+
+            const catLabels = Object.keys(catCounts);
+            const catData = Object.values(catCounts);
+
+            const catCanvas = document.getElementById('categoryChart');
+            const catEmpty = document.getElementById('categoryEmptyState');
+
+            if (catLabels.length === 0) {
+                catCanvas.classList.add('hidden');
+                catEmpty.classList.remove('hidden');
+            } else {
+                catCanvas.classList.remove('hidden');
+                catEmpty.classList.add('hidden');
+
+                if (categoryChartInstance) categoryChartInstance.destroy();
+                categoryChartInstance = new Chart(catCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: catLabels,
+                        datasets: [{
+                            label: 'Reports',
+                            data: catData,
+                            backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                            borderColor: 'rgba(99, 102, 241, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#94a3b8', stepSize: 1 },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#94a3b8', font: { size: 10 } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Severity Breakdown
+            const sevCounts = { Emergency: 0, High: 0, Medium: 0, Low: 0 };
+            allIncidents.forEach(i => {
+                const s = (i.severity || 'medium').toLowerCase();
+                if (s === 'emergency') sevCounts.Emergency++;
+                else if (s === 'high') sevCounts.High++;
+                else if (s === 'low') sevCounts.Low++;
+                else sevCounts.Medium++;
+            });
+
+            const sevCanvas = document.getElementById('severityChart');
+            const sevEmpty = document.getElementById('severityEmptyState');
+
+            if (allIncidents.length === 0) {
+                sevCanvas.classList.add('hidden');
+                sevEmpty.classList.remove('hidden');
+            } else {
+                sevCanvas.classList.remove('hidden');
+                sevEmpty.classList.add('hidden');
+
+                if (severityChartInstance) severityChartInstance.destroy();
+                severityChartInstance = new Chart(sevCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Emergency', 'High', 'Medium', 'Low'],
+                        datasets: [{
+                            data: [sevCounts.Emergency, sevCounts.High, sevCounts.Medium, sevCounts.Low],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f97316',
+                                '#f59e0b',
+                                '#10b981'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 11 } }
+                            }
+                        },
+                        cutout: '68%'
+                    }
+                });
+            }
+        }
+
+        // Update AI Citizen Summaries Spotlight
+        function updateAISummaries() {
+            const summaryBox = document.getElementById('aiSummaryBox');
+            const recentWithSummary = allIncidents.filter(i => i.call_summary && i.call_summary.trim().length > 0).slice(0, 4);
+
+            if (recentWithSummary.length === 0) {
+                summaryBox.innerHTML = `<p class="italic text-slate-500">No citizen voice summaries recorded yet. Try clicking "Seed Data" or "Simulate Call".</p>`;
+                return;
+            }
+
+            summaryBox.innerHTML = recentWithSummary.map(inc => `
+                <div class="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800 hover:border-slate-700 transition">
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                        <span class="font-bold text-slate-300">🏛️ ${escapeHtml(inc.city)} &bull; ${escapeHtml(inc.issue_type)}</span>
+                        <span>${formatTimestamp(inc.created_at)}</span>
+                    </div>
+                    <p class="text-slate-200 text-xs italic leading-snug">
+                        "${escapeHtml(inc.call_summary)}"
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        // Status Update via API
+        async function updateIncidentStatus(incidentId, newStatus) {
+            try {
+                const res = await fetch(`/api/incidents/${incidentId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!res.ok) throw new Error('Failed to update status');
+                
+                showToast(`Ticket #${incidentId} updated to "${newStatus}"`, 'success');
+
+                // Update local model
+                const item = allIncidents.find(i => i.id === incidentId);
+                if (item) item.status = newStatus;
+
+                applyFilters();
+                updateKPIs();
+
+            } catch (err) {
+                console.error('Error updating status:', err);
+                showToast('Failed to update incident status', 'error');
+            }
+        }
+
+        // Detail Modal
+        function openDetailModal(incidentId) {
+            const incident = allIncidents.find(i => i.id === incidentId);
+            if (!incident) return;
+
+            activeIncidentDetail = incident;
+
+            document.getElementById('detailTicketId').textContent = `#${incident.id}`;
+            document.getElementById('detailCityBadge').textContent = `🏛️ ${incident.city}`;
+            document.getElementById('detailSeverityBadge').textContent = incident.severity;
+            
+            const sevKey = (incident.severity || 'normal').toLowerCase();
+            const sevStyle = severityColors[sevKey] || severityColors['normal'];
+            document.getElementById('detailSeverityBadge').className = `text-xs font-bold px-2 py-0.5 rounded ${sevStyle.bg} ${sevStyle.text} border ${sevStyle.border}`;
+
+            document.getElementById('detailIssueTitle').textContent = `${incident.issue_type} Report`;
+            document.getElementById('detailLocation').innerHTML = `<i class="fa-solid fa-location-dot text-indigo-400"></i> ${escapeHtml(incident.location)}, ${escapeHtml(incident.city)}`;
+            document.getElementById('detailTime').textContent = formatTimestamp(incident.created_at, true);
+            document.getElementById('detailSummaryText').textContent = incident.call_summary ? `"${incident.call_summary}"` : 'No call transcript summary provided.';
+            
+            document.getElementById('detailStatusSelect').value = incident.status || 'Open';
+
+            // Google Maps link
+            const mapsQuery = encodeURIComponent(`${incident.location}, ${incident.city}`);
+            document.getElementById('detailMapsLink').href = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            activeIncidentDetail = null;
+        }
+
+        function updateTicketStatusFromModal(newStatus) {
+            if (!activeIncidentDetail) return;
+            updateIncidentStatus(activeIncidentDetail.id, newStatus);
+        }
+
+        // Simulate Call Modal
+        function openSimulateModal() {
+            if (currentCityScope) {
+                document.getElementById('simCity').value = currentCityScope;
+            }
+            document.getElementById('simulateModal').classList.remove('hidden');
+        }
+
+        function closeSimulateModal() {
+            document.getElementById('simulateModal').classList.add('hidden');
+        }
+
+        function fillPreset(city, location, issue, severity, summary) {
+            document.getElementById('simCity').value = city;
+            document.getElementById('simLocation').value = location;
+            document.getElementById('simIssue').value = issue;
+            document.getElementById('simSeverity').value = severity;
+            document.getElementById('simSummary').value = summary;
+        }
+
+        async function submitSimulatedCall(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('simSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Transmitting...`;
+
+            const payload = {
+                structured_result: {
+                    city: document.getElementById('simCity').value.trim(),
+                    location: document.getElementById('simLocation').value.trim(),
+                    issue_type: document.getElementById('simIssue').value.trim(),
+                    severity: document.getElementById('simSeverity').value
+                },
+                summary: document.getElementById('simSummary').value.trim()
+            };
+
+            try {
+                const res = await fetch('/webhook/call-e', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error('Webhook error');
+                const result = await res.json();
+
+                showToast(`Voice report received! Incident #${result.incident_id} created.`, 'success');
+                closeSimulateModal();
+                document.getElementById('simulateForm').reset();
+                
+                // Refresh data
+                await loadCities();
+                await loadDashboardData();
+
+            } catch (err) {
+                console.error('Error submitting call:', err);
+                showToast('Failed to deliver webhook payload', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Transmit to Webhook</span>`;
+            }
+        }
+
+        // Seed Sample Data
+        async function seedSampleData() {
+            try {
+                const res = await fetch('/api/incidents/seed', { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to seed data');
+                const result = await res.json();
+                
+                showToast(`Seeded ${result.count || 'sample'} citizen voice reports!`, 'success');
+                await loadCities();
+                await loadDashboardData();
+            } catch (err) {
+                console.error('Error seeding sample data:', err);
+                showToast('Failed to seed sample data', 'error');
+            }
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === 'success' ? 'bg-emerald-900/90 border-emerald-500 text-emerald-100' :
+                            type === 'error' ? 'bg-red-900/90 border-red-500 text-red-100' :
+                            'bg-slate-800/90 border-slate-700 text-slate-100';
+
+            const iconClass = type === 'success' ? 'fa-circle-check text-emerald-400' :
+                              type === 'error' ? 'fa-circle-xmark text-red-400' :
+                              'fa-circle-info text-indigo-400';
+
+            toast.className = `pointer-events-auto flex items-center space-x-2 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-md text-xs font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass}"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Format Date Utility
+        function formatTimestamp(isoStr, full = false) {
+            if (!isoStr) return 'Just now';
+            const date = new Date(isoStr);
+            if (isNaN(date.getTime())) return isoStr;
+
+            if (full) {
+                return date.toLocaleString();
+            }
+
+            const now = new Date();
+            const diffSeconds = Math.floor((now - date) / 1000);
+
+            if (diffSeconds < 60) return 'Just now';
+            if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`;
+            if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Escape HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
