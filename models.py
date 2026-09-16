@@ -14,3 +14,15 @@ class IncidentModel(Base):
     status = Column(String, default="Open")  # Open, In Progress, Resolved
     call_summary = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "city": self.city,
+            "location": self.location,
+            "issue_type": self.issue_type,
+            "severity": self.severity,
+            "status": self.status,
+            "call_summary": self.call_summary,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
